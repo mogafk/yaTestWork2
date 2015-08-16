@@ -1,0 +1,128 @@
+<html>
+<head>
+    <title>Задание номер 2 yandex</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head>
+<body>
+<script>
+    /**
+     * Реализация API, не изменяйте ее
+     * @param {string} url
+     * @param {function} callback
+     */
+    function getData(url, callback) {
+        var RESPONSES = {
+            '/countries': [
+                {name: 'Cameroon', continent: 'Africa'},
+                {name :'Fiji Islands', continent: 'Oceania'},
+                {name: 'Guatemala', continent: 'North America'},
+                {name: 'Japan', continent: 'Asia'},
+                {name: 'Yugoslavia', continent: 'Europe'},
+                {name: 'Tanzania', continent: 'Africa'}
+            ],
+            '/cities': [
+                {name: 'Bamenda', country: 'Cameroon'},
+                {name: 'Suva', country: 'Fiji Islands'},
+                {name: 'Quetzaltenango', country: 'Guatemala'},
+                {name: 'Osaka', country: 'Japan'},
+                {name: 'Subotica', country: 'Yugoslavia'},
+                {name: 'Zanzibar', country: 'Tanzania'},
+            ],
+            '/populations': [
+                {count: 138000, name: 'Bamenda'},
+                {count: 77366, name: 'Suva'},
+                {count: 90801, name: 'Quetzaltenango'},
+                {count: 2595674, name: 'Osaka'},
+                {count: 100386, name: 'Subotica'},
+                {count: 157634, name: 'Zanzibar'}
+            ]
+        };
+
+        setTimeout(function () {
+            var result = RESPONSES[url];
+            if (!result) {
+                return callback('Unknown url');
+            }
+
+            callback(null, result);
+        }, Math.round(Math.random * 1000));
+    }
+
+    /**
+     * Ваши изменения ниже
+     */
+
+    /*
+        Допустим запросы выполняются одновременно, но мы не можем
+        знать ответ какого придет к нам первым и посчитать
+        результат /cities до /countries. Если бы в примере страны
+        повторялись, то мы могли бы посчитать население каждой страны,
+        до информации на каких материках они находятся, но стран все равно
+        больше, чем городов. В итоге выигрыш может быть отрицательным.
+        Поскольку js однопоточный яп(не знаю как там с webWorker'ами),
+        то из-за setTimeout первым возвется тот колбэк, запрос по которому придет первым.
+        А следующая начнет свое выполнение лишь после того, как закончит свое выполнение
+        первая. Многопоточности не будет.
+        Мы будем ждать прихода ответов по порядку запросов в массиве requests
+     */
+    var requests = ['/countries', '/cities', '/populations'];
+    var responses = {}; //содержит обьекты по запросам
+
+    var c = [], cc = [], p = 0, l = 0;
+    for (i = 0; i < 3; i++) {
+        var request = requests[i];
+        (function(request) {
+            //классический пример замыкания
+            //наверно можно сделать изящнее
+            var callback = function (error, result) {
+                responses[request] = result;
+
+                //нет смысла ожидать всех трех запросов
+                //поэтому будем считать по порядку, как только
+                //появился
+
+                //если мы впервые получили результат /countries
+                //найти все, что относится к африке
+                if (responses[requests[0]] && c.length==0) {
+                    for(var i=0; i<responses[requests[0]].length; i++){
+                        if(responses[requests[0]][i].continent === 'Africa'){
+                            c.push(responses[requests[0]][i].name);
+                        }
+                    }
+                    l++;
+                }
+                if(c.length>0 && responses[requests[1]] && cc.length==0){
+                    for(var i=0; i<responses[requests[1]].length; i++){
+                        for(var j=0; j<c.length; j++){
+                            if(responses[requests[1]][i].country == c[j]){
+                                cc.push(responses[requests[1]][i].name);
+                            }
+                        }
+                    }
+                    l++;
+                }
+                if(cc.length>0 && responses[requests[2]]){
+                    for(var i=0; i<responses[requests[2]].length; i++){
+                        for(var j=0; j<cc.length; j++){
+                            if(responses[requests[2]][i].name == cc[j]){
+                                p += responses[requests[2]][i].count;
+                            }
+                        }
+                    }
+                    l++;
+                }
+                if(l == 3){
+                    if(p>0)
+                        console.log('Total population in African cities: ' + p);
+                    else
+                        console.error("Ошибка")
+                }
+            };
+
+            getData(request, callback);
+        })(request);
+    }
+</script>
+привет мир
+</body>
+</html>
